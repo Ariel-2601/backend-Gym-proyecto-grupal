@@ -86,6 +86,17 @@ export const kpis = async (req, res) => {
   res.json({ asistenciasMes, ventasMes, retencion, productoTop });
 };
 
+// GET /api/registro_progreso?clienteId=...  ->  [{ _id, ejercicioId, nombreEjercicio, pesoKg, repeticiones, fecha }]
+export const progreso = async (req, res) => {
+  const snap = await db
+    .collection("registro_progreso")
+    .where("clienteId", "==", req.clienteId)
+    .get();
+  // Se ordena en memoria (de más antiguo a más reciente) para no requerir un índice compuesto
+  const items = snap.docs.map(conId).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  res.json(items.slice(-500));
+};
+
 // POST /api/registro_progreso  { ejercicioId, nombreEjercicio, pesoKg, repeticiones }
 export const registrarProgreso = async (req, res) => {
   const { ejercicioId, nombreEjercicio, pesoKg, repeticiones } = req.body || {};

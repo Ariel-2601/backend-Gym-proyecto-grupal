@@ -16,6 +16,7 @@ router.get("/rutinas/:clienteId", propioOStaff, h(c.rutina));
 router.get("/membresias/:clienteId", propioOStaff, h(c.membresia));
 router.get("/productos", h(c.productos));
 router.get("/dashboard/kpis", soloStaff, h(c.kpis));
+router.get("/registro_progreso", propioOStaff, h(c.progreso));
 router.post("/registro_progreso", h(c.registrarProgreso));
 
 export default router;
