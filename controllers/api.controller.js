@@ -32,6 +32,28 @@ export const asistencias = async (req, res) => {
   res.json(items.slice(0, 100));
 };
 
+// POST /api/historial_asistencias  (sin body)
+// Registra la asistencia de HOY para el usuario del token. Una por día.
+// El id del documento es "<uid>_<AAAA-MM-DD>" (día en hora de Nicaragua, UTC-6),
+// así que un segundo intento el mismo día falla solo, sin índices ni consultas extra.
+export const registrarAsistencia = async (req, res) => {
+  const hoy = new Date(Date.now() - 6 * 3600 * 1000).toISOString().slice(0, 10);
+  const ref = db.collection("historial_asistencias").doc(`${req.user.uid}_${hoy}`);
+  try {
+    await ref.create({
+      clienteId: req.user.uid, // siempre el del token
+      fecha: FieldValue.serverTimestamp(), // hora del servidor
+    });
+  } catch (e) {
+    if (e.code === 6) {
+      // 6 = ALREADY_EXISTS
+      return res.status(409).json({ message: "Ya registraste tu asistencia de hoy." });
+    }
+    throw e;
+  }
+  res.status(201).json({ _id: ref.id });
+};
+
 // GET /api/rutinas/:clienteId  ->  { dias: [{ dia, ejercicios: [...] }] }
 export const rutina = async (req, res) => {
   const snap = await db.collection("rutinas").doc(req.clienteId).get();

@@ -12,6 +12,7 @@ router.use(verificarToken);
 
 router.get("/clientes/:clienteId", propioOStaff, h(c.perfil));
 router.get("/historial_asistencias", propioOStaff, h(c.asistencias));
+router.post("/historial_asistencias", h(c.registrarAsistencia));
 router.get("/rutinas/:clienteId", propioOStaff, h(c.rutina));
 router.get("/membresias/:clienteId", propioOStaff, h(c.membresia));
 router.get("/productos", h(c.productos));
