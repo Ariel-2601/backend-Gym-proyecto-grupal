@@ -14,6 +14,27 @@ function limpiar(valor) {
 const conId = (doc) => ({ _id: doc.id, ...limpiar(doc.data()) });
 const aFecha = (v) => new Date(limpiar(v));
 
+// GET /api/clientes  (solo admin / entrenador)
+export const listarClientes = async (req, res) => {
+  const snap = await db.collection("clientes").get();
+  const items = snap.docs
+    .filter((doc) => {
+      const rol = doc.data().rol;
+      return !rol || rol === "cliente";
+    })
+    .map((doc) => {
+      const data = doc.data();
+      return {
+        _id: doc.id,
+        nombre: data.nombre || data.name || null,
+        email: data.email || data.correo || null,
+      };
+    })
+    .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"))
+    .slice(0, 500);
+  res.json(items);
+};
+
 // GET /api/clientes/:clienteId
 export const perfil = async (req, res) => {
   const snap = await db.collection("clientes").doc(req.clienteId).get();
