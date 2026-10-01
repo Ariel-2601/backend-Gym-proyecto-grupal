@@ -35,6 +35,35 @@ export const listarClientes = async (req, res) => {
   res.json(items);
 };
 
+
+// GET /api/asistencias/hoy  (solo admin / entrenador)
+export const asistenciasHoy = async (req, res) => {
+  const hoy = new Date(Date.now() - 6 * 3600 * 1000).toISOString().slice(0, 10);
+  const snap = await db.collection("historial_asistencias").get();
+  const docs = snap.docs.filter((doc) => doc.id.endsWith(`_${hoy}`));
+
+  const clientesSnap = await db.collection("clientes").get();
+  const nombres = new Map();
+  clientesSnap.docs.forEach((doc) => {
+    const data = doc.data();
+    if (!data.rol || data.rol === "cliente") {
+      nombres.set(doc.id, data.nombre || data.name || null);
+    }
+  });
+
+  const items = docs.map((doc) => {
+    const data = limpiar(doc.data());
+    return {
+      _id: doc.id,
+      clienteId: data.clienteId,
+      nombre: nombres.get(data.clienteId) || "Cliente sin nombre",
+      fecha: data.fecha,
+    };
+  }).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+  res.json(items);
+};
+
 // GET /api/clientes/:clienteId
 export const perfil = async (req, res) => {
   const snap = await db.collection("clientes").doc(req.clienteId).get();
