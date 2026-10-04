@@ -139,7 +139,6 @@ export const crearRutina = async (req, res) => {
 };
 
 
-
 // PUT /api/rutinas/:clienteId  -> edita/reemplaza la rutina del cliente
 export const editarRutina = async (req, res) => {
   const { clienteId } = req.params;
@@ -171,7 +170,6 @@ export const editarRutina = async (req, res) => {
   res.json({ _id: ref.id, dias: diasLimpios });
 };
 
-
 // DELETE /api/rutinas/:clienteId -> elimina la rutina completa del cliente
 export const eliminarRutina = async (req, res) => {
   const { clienteId } = req.params;
@@ -184,6 +182,50 @@ export const eliminarRutina = async (req, res) => {
 
   await ref.delete();
   res.json({ message: "Rutina eliminada correctamente." });
+};
+
+// GET /api/membresias  (solo admin / entrenador)
+export const listarMembresias = async (req, res) => {
+  const [clientesSnap, membresiasSnap] = await Promise.all([
+    db.collection("clientes").get(),
+    db.collection("membresias").get(),
+  ]);
+
+  const membresias = new Map();
+  membresiasSnap.docs.forEach((doc) => {
+    membresias.set(doc.id, { _id: doc.id, ...limpiar(doc.data()) });
+  });
+
+  const hoy = new Date();
+  const items = clientesSnap.docs
+    .filter((doc) => {
+      const rol = doc.data().rol;
+      return !rol || rol === "cliente";
+    })
+    .map((doc) => {
+      const data = doc.data();
+      const membresia = membresias.get(doc.id);
+      const fechaFin = membresia?.fechaFin ? new Date(membresia.fechaFin) : null;
+      const activa = !!fechaFin && fechaFin >= hoy;
+
+      return {
+        _id: doc.id,
+        nombre: data.nombre || data.name || null,
+        email: data.email || data.correo || null,
+        membresia: membresia
+          ? {
+              tipo: membresia.tipo || null,
+              fechaInicio: membresia.fechaInicio || null,
+              fechaFin: membresia.fechaFin || null,
+              activa,
+            }
+          : null,
+      };
+    })
+    .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"))
+    .slice(0, 500);
+
+  res.json(items);
 };
 
 // GET /api/membresias/:clienteId  ->  { tipo, fechaInicio, fechaFin }
