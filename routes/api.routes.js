@@ -10,11 +10,11 @@
     // Todo lo que está bajo /api exige sesión de Firebase
     router.use(verificarToken);
 
-<<<<<<< HEAD
+
     router.get("/clientes", soloStaff, h(c.listarClientes));
   
     router.get("/asistencias/hoy", soloStaff, h(c.asistenciasHoy));
-=======
+
 router.get("/clientes", soloStaff, h(c.listarClientes));
 router.get("/asistencias/hoy", soloStaff, h(c.asistenciasHoy));
 router.get("/clientes/:clienteId", propioOStaff, h(c.perfil));
@@ -22,12 +22,15 @@ router.get("/historial_asistencias", propioOStaff, h(c.asistencias));
 router.post("/historial_asistencias", h(c.registrarAsistencia));
 router.get("/rutinas/:clienteId", propioOStaff, h(c.rutina));
 router.post("/rutinas/:clienteId", soloStaff, h(c.crearRutina));
+
+router.put("/rutinas/:clienteId", soloStaff, h(c.editarRutina));
+
 router.get("/membresias/:clienteId", propioOStaff, h(c.membresia));
 router.get("/productos", h(c.productos));
 router.get("/dashboard/kpis", soloStaff, h(c.kpis));
 router.get("/registro_progreso", propioOStaff, h(c.progreso));
 router.post("/registro_progreso", h(c.registrarProgreso));
->>>>>>> 11bdf2d (Entrenador editar)
+
 
     router.get("/clientes/:clienteId", propioOStaff, h(c.perfil));
     router.get("/historial_asistencias", propioOStaff, h(c.asistencias));

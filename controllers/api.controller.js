@@ -35,10 +35,6 @@ export const listarClientes = async (req, res) => {
   res.json(items);
 };
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 11bdf2d (Entrenador editar)
 // GET /api/asistencias/hoy  (solo admin / entrenador)
 export const asistenciasHoy = async (req, res) => {
   const hoy = new Date(Date.now() - 6 * 3600 * 1000).toISOString().slice(0, 10);
@@ -141,6 +137,40 @@ export const crearRutina = async (req, res) => {
   await ref.set({ dias: diasLimpios });
   res.status(201).json({ _id: ref.id, dias: diasLimpios });
 };
+
+
+
+// PUT /api/rutinas/:clienteId  -> edita/reemplaza la rutina del cliente
+export const editarRutina = async (req, res) => {
+  const { clienteId } = req.params;
+  const clienteSnap = await db.collection("clientes").doc(clienteId).get();
+  if (!clienteSnap.exists) return res.status(404).json({ message: "Cliente no encontrado." });
+
+  const dias = Array.isArray(req.body?.dias) ? req.body.dias : [];
+  if (!dias.length) return res.status(400).json({ message: "La rutina debe tener al menos un día." });
+  if (dias.length > 7) return res.status(400).json({ message: "La rutina no puede tener más de 7 días." });
+
+  const diasLimpios = dias.map((dia) => ({
+    dia: String(dia?.dia || "").trim(),
+    ejercicios: Array.isArray(dia?.ejercicios)
+      ? dia.ejercicios.map((ej) => ({
+          nombre: String(ej?.nombre || "").trim(),
+          series: Number(ej?.series),
+          repeticiones: Number(ej?.repeticiones),
+        })).filter((ej) => ej.nombre && Number.isInteger(ej.series) && ej.series >= 1 && ej.series <= 50 && Number.isInteger(ej.repeticiones) && ej.repeticiones >= 1 && ej.repeticiones <= 200)
+      : [],
+  })).filter((dia) => dia.dia && dia.ejercicios.length);
+
+  if (!diasLimpios.length) return res.status(400).json({ message: "Agrega al menos un ejercicio válido." });
+
+  const ref = db.collection("rutinas").doc(clienteId);
+  const actual = await ref.get();
+  if (!actual.exists) return res.status(404).json({ message: "El cliente todavía no tiene una rutina para editar." });
+
+  await ref.set({ dias: diasLimpios });
+  res.json({ _id: ref.id, dias: diasLimpios });
+};
+
 
 // GET /api/membresias/:clienteId  ->  { tipo, fechaInicio, fechaFin }
 export const membresia = async (req, res) => {
