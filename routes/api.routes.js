@@ -11,9 +11,11 @@
     router.use(verificarToken);
 
 
+
     router.get("/clientes", soloStaff, h(c.listarClientes));
   
     router.get("/asistencias/hoy", soloStaff, h(c.asistenciasHoy));
+
 
 router.get("/clientes", soloStaff, h(c.listarClientes));
 router.get("/asistencias/hoy", soloStaff, h(c.asistenciasHoy));
@@ -24,6 +26,10 @@ router.get("/rutinas/:clienteId", propioOStaff, h(c.rutina));
 router.post("/rutinas/:clienteId", soloStaff, h(c.crearRutina));
 
 router.put("/rutinas/:clienteId", soloStaff, h(c.editarRutina));
+
+
+router.put("/rutinas/:clienteId", soloStaff, h(c.editarRutina));
+router.delete("/rutinas/:clienteId", soloStaff, h(c.eliminarRutina));
 
 router.get("/membresias/:clienteId", propioOStaff, h(c.membresia));
 router.get("/productos", h(c.productos));

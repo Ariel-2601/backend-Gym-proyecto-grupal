@@ -172,6 +172,20 @@ export const editarRutina = async (req, res) => {
 };
 
 
+// DELETE /api/rutinas/:clienteId -> elimina la rutina completa del cliente
+export const eliminarRutina = async (req, res) => {
+  const { clienteId } = req.params;
+  const clienteSnap = await db.collection("clientes").doc(clienteId).get();
+  if (!clienteSnap.exists) return res.status(404).json({ message: "Cliente no encontrado." });
+
+  const ref = db.collection("rutinas").doc(clienteId);
+  const actual = await ref.get();
+  if (!actual.exists) return res.status(404).json({ message: "El cliente no tiene una rutina para eliminar." });
+
+  await ref.delete();
+  res.json({ message: "Rutina eliminada correctamente." });
+};
+
 // GET /api/membresias/:clienteId  ->  { tipo, fechaInicio, fechaFin }
 export const membresia = async (req, res) => {
   const snap = await db.collection("membresias").doc(req.clienteId).get();
