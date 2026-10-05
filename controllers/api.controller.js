@@ -228,6 +228,30 @@ export const listarMembresias = async (req, res) => {
   res.json(items);
 };
 
+// PUT /api/membresias/:clienteId  -> crea o renueva una membresía (solo admin / entrenador)
+export const guardarMembresia = async (req, res) => {
+  const { clienteId } = req.params;
+  const clienteSnap = await db.collection("clientes").doc(clienteId).get();
+  if (!clienteSnap.exists) return res.status(404).json({ message: "Cliente no encontrado." });
+
+  const tipo = String(req.body?.tipo || "").trim();
+  const fechaInicio = String(req.body?.fechaInicio || "").trim();
+  const fechaFin = String(req.body?.fechaFin || "").trim();
+
+  if (!tipo) return res.status(400).json({ message: "Indica el tipo de membresía." });
+  const inicio = new Date(`${fechaInicio}T00:00:00`);
+  const fin = new Date(`${fechaFin}T23:59:59`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaInicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fechaFin) || Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) {
+    return res.status(400).json({ message: "Las fechas deben tener formato AAAA-MM-DD." });
+  }
+  if (fin < inicio) return res.status(400).json({ message: "La fecha de vencimiento no puede ser anterior al inicio." });
+
+  const ref = db.collection("membresias").doc(clienteId);
+  await ref.set({ tipo, fechaInicio: inicio.toISOString(), fechaFin: fin.toISOString(), actualizadoEn: FieldValue.serverTimestamp() }, { merge: true });
+  const snap = await ref.get();
+  res.json(conId(snap));
+};
+
 // GET /api/membresias/:clienteId  ->  { tipo, fechaInicio, fechaFin }
 export const membresia = async (req, res) => {
   const snap = await db.collection("membresias").doc(req.clienteId).get();

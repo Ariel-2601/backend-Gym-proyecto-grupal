@@ -21,6 +21,7 @@ router.put("/rutinas/:clienteId", soloStaff, h(c.editarRutina));
 router.delete("/rutinas/:clienteId", soloStaff, h(c.eliminarRutina));
 router.get("/membresias", soloStaff, h(c.listarMembresias));
 router.get("/membresias/:clienteId", propioOStaff, h(c.membresia));
+router.put("/membresias/:clienteId", soloStaff, h(c.guardarMembresia));
 router.get("/productos", h(c.productos));
 router.get("/dashboard/kpis", soloStaff, h(c.kpis));
 router.get("/registro_progreso", propioOStaff, h(c.progreso));
