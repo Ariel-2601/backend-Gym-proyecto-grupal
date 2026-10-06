@@ -16,7 +16,7 @@ const aFecha = (v) => new Date(limpiar(v));
 
 // GET /api/clientes  (solo admin / entrenador)
 export const listarClientes = async (req, res) => {
-  const snap = await db.collection("clientes").get();
+  const snap = await db.collection("usuarios").get();
   const items = snap.docs
     .filter((doc) => {
       const rol = doc.data().rol;
@@ -41,7 +41,7 @@ export const asistenciasHoy = async (req, res) => {
   const snap = await db.collection("historial_asistencias").get();
   const docs = snap.docs.filter((doc) => doc.id.endsWith(`_${hoy}`));
 
-  const clientesSnap = await db.collection("clientes").get();
+  const clientesSnap = await db.collection("usuarios").get();
   const nombres = new Map();
   clientesSnap.docs.forEach((doc) => {
     const data = doc.data();
@@ -65,7 +65,7 @@ export const asistenciasHoy = async (req, res) => {
 
 // GET /api/clientes/:clienteId
 export const perfil = async (req, res) => {
-  const snap = await db.collection("clientes").doc(req.clienteId).get();
+  const snap = await db.collection("usuarios").doc(req.clienteId).get();
   if (!snap.exists) return res.status(404).json({ message: "Cliente no encontrado." });
   res.json(conId(snap));
 };
@@ -113,7 +113,7 @@ export const rutina = async (req, res) => {
 // POST /api/rutinas/:clienteId  -> crea/reemplaza la rutina del cliente
 export const crearRutina = async (req, res) => {
   const { clienteId } = req.params;
-  const clienteSnap = await db.collection("clientes").doc(clienteId).get();
+  const clienteSnap = await db.collection("usuarios").doc(clienteId).get();
   if (!clienteSnap.exists) return res.status(404).json({ message: "Cliente no encontrado." });
 
   const dias = Array.isArray(req.body?.dias) ? req.body.dias : [];
@@ -142,7 +142,7 @@ export const crearRutina = async (req, res) => {
 // PUT /api/rutinas/:clienteId  -> edita/reemplaza la rutina del cliente
 export const editarRutina = async (req, res) => {
   const { clienteId } = req.params;
-  const clienteSnap = await db.collection("clientes").doc(clienteId).get();
+  const clienteSnap = await db.collection("usuarios").doc(clienteId).get();
   if (!clienteSnap.exists) return res.status(404).json({ message: "Cliente no encontrado." });
 
   const dias = Array.isArray(req.body?.dias) ? req.body.dias : [];
@@ -173,7 +173,7 @@ export const editarRutina = async (req, res) => {
 // DELETE /api/rutinas/:clienteId -> elimina la rutina completa del cliente
 export const eliminarRutina = async (req, res) => {
   const { clienteId } = req.params;
-  const clienteSnap = await db.collection("clientes").doc(clienteId).get();
+  const clienteSnap = await db.collection("usuarios").doc(clienteId).get();
   if (!clienteSnap.exists) return res.status(404).json({ message: "Cliente no encontrado." });
 
   const ref = db.collection("rutinas").doc(clienteId);
@@ -187,7 +187,7 @@ export const eliminarRutina = async (req, res) => {
 // GET /api/membresias  (solo admin / entrenador)
 export const listarMembresias = async (req, res) => {
   const [clientesSnap, membresiasSnap] = await Promise.all([
-    db.collection("clientes").get(),
+    db.collection("usuarios").get(),
     db.collection("membresias").get(),
   ]);
 
@@ -231,7 +231,7 @@ export const listarMembresias = async (req, res) => {
 // PUT /api/membresias/:clienteId  -> crea o renueva una membresía (solo admin / entrenador)
 export const guardarMembresia = async (req, res) => {
   const { clienteId } = req.params;
-  const clienteSnap = await db.collection("clientes").doc(clienteId).get();
+  const clienteSnap = await db.collection("usuarios").doc(clienteId).get();
   if (!clienteSnap.exists) return res.status(404).json({ message: "Cliente no encontrado." });
 
   const tipo = String(req.body?.tipo || "").trim();
