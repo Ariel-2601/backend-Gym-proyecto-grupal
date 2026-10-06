@@ -23,7 +23,7 @@ export async function verificarToken(req, res, next) {
 
 // Lee el rol del usuario desde la colección "clientes" (campo "rol")
 async function obtenerRol(uid) {
-  const snap = await db.collection("clientes").doc(uid).get();
+  const snap = await db.collection("usuarios").doc(uid).get();
   return snap.exists ? snap.data().rol || "cliente" : "cliente";
 }
 
