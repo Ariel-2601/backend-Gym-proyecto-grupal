@@ -24,7 +24,7 @@ export async function verificarToken(req, res, next) {
 // Lee el rol del usuario desde la colección "clientes" (campo "rol")
 async function obtenerRol(uid) {
   const snap = await db.collection("usuarios").doc(uid).get();
-  return snap.exists ? String(snap.data().rol || "cliente").trim().toLowerCase() : "cliente";
+  return snap.exists ? snap.data().rol || "cliente" : "cliente";
 }
 
 // 2) Un cliente solo puede ver SUS datos; admin/entrenador pueden ver los de cualquiera.
@@ -33,7 +33,7 @@ export async function propioOStaff(req, res, next) {
   try {
     const pedido = req.params.clienteId || req.query.clienteId || req.user.uid;
     if (pedido !== req.user.uid) {
-      const rol = await obtenerRol(req.user.uid);
+      const rol = String(await obtenerRol(req.user.uid)).trim().toLowerCase();
       if (rol !== "admin" && rol !== "entrenador") {
         return res
           .status(403)
@@ -50,7 +50,7 @@ export async function propioOStaff(req, res, next) {
 // 3) Solo admin / entrenador
 export async function soloStaff(req, res, next) {
   try {
-    const rol = await obtenerRol(req.user.uid);
+    const rol = String(await obtenerRol(req.user.uid)).trim().toLowerCase();
     if (rol !== "admin" && rol !== "entrenador") {
       return res.status(403).json({ message: "No tienes permiso para ver esto." });
     }
@@ -61,7 +61,7 @@ export async function soloStaff(req, res, next) {
 }
 
 
-// Solo el administrador puede consultar KPI e indicadores globales.
+// Solo el administrador puede consultar los KPI del gimnasio.
 export async function soloAdmin(req, res, next) {
   try {
     const rol = String(await obtenerRol(req.user.uid)).trim().toLowerCase();

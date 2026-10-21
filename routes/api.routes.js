@@ -10,7 +10,7 @@ const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(
 // Todo lo que está bajo /api exige sesión de Firebase
 router.use(verificarToken);
 
-router.get("/usuarios/perfil", h(c.miPerfil));
+router.get("/usuarios/perfil", h(c.perfilUsuarioAutenticado));
 router.get("/clientes", soloStaff, h(c.listarClientes));
 router.get("/asistencias/hoy", soloStaff, h(c.asistenciasHoy));
 router.get("/clientes/:clienteId", propioOStaff, h(c.perfil));
