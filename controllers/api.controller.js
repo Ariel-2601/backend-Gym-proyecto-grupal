@@ -63,6 +63,21 @@ export const asistenciasHoy = async (req, res) => {
   res.json(items);
 };
 
+// GET /api/usuarios/perfil: devuelve el perfil del UID autenticado.
+// Evita que el menú dependa de un ID enviado por el frontend.
+export const miPerfil = async (req, res) => {
+  const snap = await db.collection("usuarios").doc(req.user.uid).get();
+  if (!snap.exists) {
+    return res.status(404).json({ message: "No existe un perfil en Firestore para este usuario." });
+  }
+  const data = limpiar(snap.data());
+  const rol = String(data.rol || "").trim().toLowerCase();
+  if (!["admin", "entrenador", "cliente"].includes(rol)) {
+    return res.status(409).json({ message: "El perfil no tiene un rol válido." });
+  }
+  res.json({ _id: snap.id, ...data, rol });
+};
+
 // GET /api/clientes/:clienteId
 export const perfil = async (req, res) => {
   const snap = await db.collection("usuarios").doc(req.clienteId).get();
