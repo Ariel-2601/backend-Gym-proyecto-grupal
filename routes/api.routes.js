@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { verificarToken, propioOStaff, soloStaff } from "../middleware/auth.js";
+import { verificarToken, propioOStaff, soloStaff, soloAdmin } from "../middleware/auth.js";
 import * as c from "../controllers/api.controller.js";
 
 const router = Router();
@@ -23,7 +23,7 @@ router.get("/membresias", soloStaff, h(c.listarMembresias));
 router.get("/membresias/:clienteId", propioOStaff, h(c.membresia));
 router.put("/membresias/:clienteId", soloStaff, h(c.guardarMembresia));
 router.get("/productos", h(c.productos));
-router.get("/dashboard/kpis", soloStaff, h(c.kpis));
+router.get("/dashboard/kpis", soloAdmin, h(c.kpis));
 router.get("/registro_progreso", propioOStaff, h(c.progreso));
 router.post("/registro_progreso", h(c.registrarProgreso));
 

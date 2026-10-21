@@ -59,3 +59,17 @@ export async function soloStaff(req, res, next) {
     next(e);
   }
 }
+
+
+// Solo el administrador puede consultar KPI e indicadores globales.
+export async function soloAdmin(req, res, next) {
+  try {
+    const rol = String(await obtenerRol(req.user.uid)).trim().toLowerCase();
+    if (rol !== "admin") {
+      return res.status(403).json({ message: "Solo el administrador puede acceder a los KPI." });
+    }
+    next();
+  } catch (e) {
+    next(e);
+  }
+}
