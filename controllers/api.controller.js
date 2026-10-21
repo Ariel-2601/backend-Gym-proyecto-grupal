@@ -186,79 +186,65 @@ export const eliminarRutina = async (req, res) => {
 
 // GET /api/membresias  (solo admin / entrenador)
 export const listarMembresias = async (req, res) => {
-  const [clientesSnap, membresiasSnap] = await Promise.all([
-    db.collection("usuarios").get(),
-    db.collection("membresias").get(),
-  ]);
-
-  const membresias = new Map();
-  membresiasSnap.docs.forEach((doc) => {
-    membresias.set(doc.id, { _id: doc.id, ...limpiar(doc.data()) });
-  });
-
+  const clientesSnap = await db.collection("usuarios").get();
   const hoy = new Date();
   const items = clientesSnap.docs
-    .filter((doc) => {
-      const rol = doc.data().rol;
-      return !rol || rol === "cliente";
-    })
+    .filter((doc) => doc.data().rol === "cliente")
     .map((doc) => {
-      const data = doc.data();
-      const membresia = membresias.get(doc.id);
-      const fechaFin = membresia?.fechaFin ? new Date(membresia.fechaFin) : null;
-      const activa = !!fechaFin && fechaFin >= hoy;
-
+      const data = limpiar(doc.data());
+      const m = data.membresia && typeof data.membresia === "object" ? data.membresia : null;
+      const fechaFin = m?.fechaFin ? new Date(m.fechaFin) : null;
       return {
         _id: doc.id,
         nombre: data.nombre || data.name || null,
         email: data.email || data.correo || null,
-        membresia: membresia
-          ? {
-              tipo: membresia.tipo || null,
-              fechaInicio: membresia.fechaInicio || null,
-              fechaFin: membresia.fechaFin || null,
-              activa,
-            }
-          : null,
+        membresia: m ? { ...m, activa: !!fechaFin && !Number.isNaN(fechaFin.getTime()) && fechaFin >= hoy } : null,
       };
     })
     .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"))
     .slice(0, 500);
-
   res.json(items);
 };
 
-// PUT /api/membresias/:clienteId  -> crea o renueva una membresía (solo admin / entrenador)
+// PUT /api/membresias/:clienteId -> guarda la membresía dentro de usuarios/{uid}.membresia
 export const guardarMembresia = async (req, res) => {
   const { clienteId } = req.params;
-  const clienteSnap = await db.collection("usuarios").doc(clienteId).get();
+  const clienteRef = db.collection("usuarios").doc(clienteId);
+  const clienteSnap = await clienteRef.get();
   if (!clienteSnap.exists) return res.status(404).json({ message: "Cliente no encontrado." });
+  if (clienteSnap.data().rol !== "cliente") return res.status(400).json({ message: "Solo se puede asignar membresía a un cliente." });
 
   const tipo = String(req.body?.tipo || "").trim();
   const fechaInicio = String(req.body?.fechaInicio || "").trim();
   const fechaFin = String(req.body?.fechaFin || "").trim();
-
   if (!tipo) return res.status(400).json({ message: "Indica el tipo de membresía." });
-  const inicio = new Date(`${fechaInicio}T00:00:00`);
-  const fin = new Date(`${fechaFin}T23:59:59`);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaInicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fechaFin) || Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) {
-    return res.status(400).json({ message: "Las fechas deben tener formato AAAA-MM-DD." });
-  }
-  if (fin < inicio) return res.status(400).json({ message: "La fecha de vencimiento no puede ser anterior al inicio." });
+  const validarFecha = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(new Date(`${v}T12:00:00`).getTime());
+  if (!validarFecha(fechaInicio) || !validarFecha(fechaFin)) return res.status(400).json({ message: "Las fechas deben tener formato AAAA-MM-DD." });
+  if (fechaFin < fechaInicio) return res.status(400).json({ message: "La fecha de vencimiento no puede ser anterior al inicio." });
 
-  const ref = db.collection("membresias").doc(clienteId);
-  await ref.set({ tipo, fechaInicio: inicio.toISOString(), fechaFin: fin.toISOString(), actualizadoEn: FieldValue.serverTimestamp() }, { merge: true });
-  const snap = await ref.get();
-  res.json(conId(snap));
+  const membresia = {
+    ...(clienteSnap.data().membresia || {}),
+    nombre: clienteSnap.data().membresia?.nombre || clienteSnap.data().nombre || "Membresía",
+    tipo,
+    fechaInicio,
+    fechaFin,
+    actualizadaEn: FieldValue.serverTimestamp(),
+  };
+  await clienteRef.update({ membresia });
+  const actualizado = await clienteRef.get();
+  res.json({ _id: actualizado.id, ...limpiar(actualizado.data()).membresia });
 };
 
-// GET /api/membresias/:clienteId  ->  { tipo, fechaInicio, fechaFin }
+// GET /api/membresias/:clienteId -> lee usuarios/{uid}.membresia
 export const membresia = async (req, res) => {
-  const snap = await db.collection("membresias").doc(req.clienteId).get();
-  if (!snap.exists) {
+  const snap = await db.collection("usuarios").doc(req.clienteId).get();
+  if (!snap.exists) return res.status(404).json({ message: "Cliente no encontrado." });
+  const data = limpiar(snap.data());
+  if (!data.membresia || typeof data.membresia !== "object") {
     return res.status(404).json({ message: "Aún no tienes una membresía registrada." });
   }
-  res.json(conId(snap));
+  const fin = data.membresia.fechaFin ? new Date(data.membresia.fechaFin) : null;
+  res.json({ ...data.membresia, activa: !!fin && !Number.isNaN(fin.getTime()) && fin >= new Date() });
 };
 
 // GET /api/productos
@@ -272,10 +258,10 @@ export const kpis = async (req, res) => {
   const ahora = new Date();
   const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
 
-  const [asist, ventas, membresias] = await Promise.all([
+  const [asist, ventas, usuarios] = await Promise.all([
     db.collection("historial_asistencias").get(),
     db.collection("ventas").get(),
-    db.collection("membresias").get(),
+    db.collection("usuarios").get(),
   ]);
 
   const asistenciasMes = asist.docs.filter((d) => aFecha(d.get("fecha")) >= inicioMes).length;
@@ -293,8 +279,12 @@ export const kpis = async (req, res) => {
   const productoTop = Object.entries(conteo).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 
   // Retención (simplificada): % de membresías que siguen vigentes
-  const vigentes = membresias.docs.filter((d) => aFecha(d.get("fechaFin")) >= ahora).length;
-  const retencion = membresias.size ? Math.round((vigentes / membresias.size) * 100) : 0;
+  const clientes = usuarios.docs.filter((d) => d.data().rol === "cliente");
+  const vigentes = clientes.filter((d) => {
+    const fechaFin = d.get("membresia.fechaFin");
+    return fechaFin && aFecha(fechaFin) >= ahora;
+  }).length;
+  const retencion = clientes.length ? Math.round((vigentes / clientes.length) * 100) : 0;
 
   res.json({ asistenciasMes, ventasMes, retencion, productoTop });
 };
