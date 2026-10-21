@@ -22,10 +22,31 @@ export async function verificarToken(req, res, next) {
 }
 
 // Lee el rol del usuario desde la colección "clientes" (campo "rol")
+ 
 async function obtenerRol(uid) {
   const snap = await db.collection("usuarios").doc(uid).get();
-  return snap.exists ? snap.data().rol || "cliente" : "cliente";
+
+  if (!snap.exists) {
+    throw Object.assign(
+      new Error("No existe el perfil del usuario en Firestore."),
+      { status: 404 }
+    );
+  }
+
+  const rol = String(snap.data().rol || "").trim().toLowerCase();
+  const rolesPermitidos = ["admin", "entrenador", "cliente"];
+
+  if (!rolesPermitidos.includes(rol)) {
+    throw Object.assign(
+      new Error("El perfil no tiene un rol válido."),
+      { status: 409 }
+    );
+  }
+
+  return rol;
 }
+
+
 
 // 2) Un cliente solo puede ver SUS datos; admin/entrenador pueden ver los de cualquiera.
 //    Deja el id resultante en req.clienteId
